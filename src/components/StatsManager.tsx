@@ -574,6 +574,7 @@ export default function StatsManager({
       shipped: { count: 0, revenue: 0, colis: 0, profit: 0, buyingCost: 0 },
       delivered: { count: 0, revenue: 0, colis: 0, profit: 0, buyingCost: 0 },
       returned: { count: 0, revenue: 0, colis: 0, profit: 0, buyingCost: 0 },
+      returnedToSupplier: { count: 0, revenue: 0, colis: 0, profit: 0, buyingCost: 0 },
       total: { count: 0, revenue: 0, colis: 0, profit: 0, buyingCost: 0 }
     };
 
@@ -601,24 +602,30 @@ export default function StatsManager({
 
       const saleProfit = rev - buyingCost;
 
-      tracking.total.count += 1;
-      tracking.total.revenue += rev;
-      tracking.total.colis += col;
-      tracking.total.profit += saleProfit;
-      tracking.total.buyingCost += buyingCost;
-
       if (status === 'delivered') {
         tracking.delivered.count += 1;
         tracking.delivered.revenue += rev;
         tracking.delivered.colis += col;
         tracking.delivered.profit += saleProfit;
         tracking.delivered.buyingCost += buyingCost;
+
+        tracking.total.count += 1;
+        tracking.total.revenue += rev;
+        tracking.total.colis += col;
+        tracking.total.profit += saleProfit;
+        tracking.total.buyingCost += buyingCost;
       } else if (status === 'shipped') {
         tracking.shipped.count += 1;
         tracking.shipped.revenue += rev;
         tracking.shipped.colis += col;
         tracking.shipped.profit += saleProfit;
         tracking.shipped.buyingCost += buyingCost;
+
+        tracking.total.count += 1;
+        tracking.total.revenue += rev;
+        tracking.total.colis += col;
+        tracking.total.profit += saleProfit;
+        tracking.total.buyingCost += buyingCost;
       } else if (status === 'returned') {
         tracking.returned.count += 1;
         tracking.returned.revenue += rev;
@@ -626,12 +633,37 @@ export default function StatsManager({
         // Sunk packaging cost loss for returned items
         tracking.returned.profit -= col * packagingPrice;
         tracking.returned.buyingCost += buyingCost;
-      } else {
+
+        tracking.total.count += 1;
+        tracking.total.revenue += rev;
+        tracking.total.colis += col;
+        tracking.total.profit -= col * packagingPrice;
+        tracking.total.buyingCost += buyingCost;
+      } else if (status === 'returned_to_supplier') {
+        tracking.returnedToSupplier.count += 1;
+        tracking.returnedToSupplier.revenue += rev;
+        tracking.returnedToSupplier.colis += col;
+        // Sunk packaging cost loss for returned items
+        tracking.returnedToSupplier.profit -= col * packagingPrice;
+        tracking.returnedToSupplier.buyingCost += buyingCost;
+
+        tracking.total.count += 1;
+        tracking.total.revenue += rev;
+        tracking.total.colis += col;
+        tracking.total.profit -= col * packagingPrice;
+        tracking.total.buyingCost += buyingCost;
+      } else if (status === 'pending') {
         tracking.pending.count += 1;
         tracking.pending.revenue += rev;
         tracking.pending.colis += col;
         tracking.pending.profit += saleProfit;
         tracking.pending.buyingCost += buyingCost;
+
+        tracking.total.count += 1;
+        tracking.total.revenue += rev;
+        tracking.total.colis += col;
+        tracking.total.profit += saleProfit;
+        tracking.total.buyingCost += buyingCost;
       }
     });
 
@@ -1557,7 +1589,7 @@ export default function StatsManager({
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
           
           {/* Delivered Status Card */}
           <div className="bg-gradient-to-br from-slate-950/40 to-emerald-950/5 p-4 rounded-xl border border-emerald-500/10 flex flex-col justify-between space-y-3">
@@ -1686,6 +1718,39 @@ export default function StatsManager({
                 <div className="flex justify-between items-center text-[11px]">
                   <span className="text-rose-400 font-bold">خسائر التغليف والتوصيل:</span>
                   <span className="font-black text-rose-400">-{formatCurrency(Math.abs(orderStatusTracking.returned.profit))}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Returned to Supplier Status Card */}
+          <div className="bg-gradient-to-br from-slate-950/40 to-purple-950/5 p-4 rounded-xl border border-purple-500/10 flex flex-col justify-between space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                <RotateCcw className="w-4 h-4 text-purple-400 rotate-180" />
+                <span>معاد للمورد 🔄</span>
+              </span>
+              <span className="text-[10px] font-mono font-black text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded-sm">
+                {orderStatusTracking.total.count > 0 ? Math.round((orderStatusTracking.returnedToSupplier.count / orderStatusTracking.total.count) * 100) : 0}%
+              </span>
+            </div>
+            
+            <div className="space-y-1.5 text-right">
+              <p className="text-xl font-black text-purple-400">{orderStatusTracking.returnedToSupplier.count} <span className="text-xs text-slate-500 font-bold">طلبيات</span></p>
+              <p className="text-[10px] text-slate-400">عدد الطرود: {orderStatusTracking.returnedToSupplier.colis} طرد</p>
+              
+              <div className="pt-2 border-t border-slate-800/60 space-y-1">
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-slate-400">قيمة البيع المعادة:</span>
+                  <span className="font-extrabold text-slate-300">{formatCurrency(orderStatusTracking.returnedToSupplier.revenue)}</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-slate-400">قيمة الشراء (المستردة):</span>
+                  <span className="font-extrabold text-slate-300">{formatCurrency(orderStatusTracking.returnedToSupplier.buyingCost)}</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px]">
+                  <span className="text-purple-400 font-bold">خسائر التغليف والتوصيل:</span>
+                  <span className="font-black text-rose-400">-{formatCurrency(Math.abs(orderStatusTracking.returnedToSupplier.profit))}</span>
                 </div>
               </div>
             </div>

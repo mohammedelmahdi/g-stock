@@ -231,10 +231,24 @@ export default function SalesManager({
     const product = products.find(p => p.id === item.productId);
     const pairsPerCtn = product?.pairsPerCarton || 12;
 
-    const singleBuying = product?.singlePairBuyingPrice || product?.buyingPrice || 0;
     const singleSelling = product?.singlePairSellingPrice || product?.sellingPrice || 0;
-    const cartonBuying = product?.buyingPricePerCarton || (singleBuying * pairsPerCtn);
     const cartonSelling = product?.sellingPricePerCarton || (singleSelling * pairsPerCtn);
+
+    // Determine the historical base buying price from the item itself to avoid using current product price!
+    let singleBuying = 0;
+    let cartonBuying = 0;
+    
+    if (item.sellType === 'carton' && sellType === 'pair') {
+      cartonBuying = item.buyingPriceAtSale || 0;
+      singleBuying = cartonBuying / pairsPerCtn;
+    } else if (item.sellType === 'pair' && sellType === 'carton') {
+      singleBuying = item.buyingPriceAtSale || 0;
+      cartonBuying = singleBuying * pairsPerCtn;
+    } else {
+      // Fallback if type didn't change or if it's newly loaded
+      singleBuying = product?.singlePairBuyingPrice || product?.buyingPrice || item.buyingPriceAtSale || 0;
+      cartonBuying = product?.buyingPricePerCarton || (singleBuying * pairsPerCtn);
+    }
 
     item.sellType = sellType;
     if (sellType === 'carton') {
@@ -326,15 +340,11 @@ export default function SalesManager({
     const finalPrice = editTotalPrice ? Number(editTotalPrice) : computedEditTotalPrice;
     
     const totalCost = editItems.reduce((sum, item) => {
-      const product = products.find(p => p.id === item.productId);
-      const singleBuying = product?.singlePairBuyingPrice || product?.buyingPrice || 0;
-      const pairsPerCtn = product?.pairsPerCarton || 12;
-      const cartonBuying = product?.buyingPricePerCarton || (singleBuying * pairsPerCtn);
-      
+      const costPerUnit = item.buyingPriceAtSale || 0;
       if (item.sellType === 'carton') {
-        return sum + (item.cartonsQuantity * cartonBuying);
+        return sum + ((item.cartonsQuantity || 0) * costPerUnit);
       } else {
-        return sum + (item.pairsQuantity * singleBuying);
+        return sum + ((item.pairsQuantity || item.quantity || 0) * costPerUnit);
       }
     }, 0);
 
