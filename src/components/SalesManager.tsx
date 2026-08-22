@@ -64,12 +64,13 @@ const calculateSaleProfit = (sale: Sale): number => {
   let buyingCost = 0;
   if (sale.items && sale.items.length > 0) {
     buyingCost = sale.items.reduce((sum, item) => {
+      const itemBuyingPrice = item.buyingPriceAtSale !== undefined ? item.buyingPriceAtSale : (sale.buyingPriceAtSale || 0);
       if (item.sellType === 'carton') {
         const cartonsQty = item.cartonsQuantity || 0;
-        return sum + (cartonsQty * (item.buyingPriceAtSale || 0));
+        return sum + (cartonsQty * itemBuyingPrice);
       } else {
         const pairsQty = item.pairsQuantity || item.quantity || 0;
-        return sum + (pairsQty * (item.buyingPriceAtSale || 0));
+        return sum + (pairsQty * itemBuyingPrice);
       }
     }, 0);
   } else {
@@ -231,23 +232,34 @@ export default function SalesManager({
     const product = products.find(p => p.id === item.productId);
     const pairsPerCtn = product?.pairsPerCarton || 12;
 
-    const singleSelling = product?.singlePairSellingPrice || product?.sellingPrice || 0;
-    const cartonSelling = product?.sellingPricePerCarton || (singleSelling * pairsPerCtn);
+    const fallbackSingleSelling = product?.singlePairSellingPrice || product?.sellingPrice || 0;
+    const fallbackCartonSelling = product?.sellingPricePerCarton || (fallbackSingleSelling * pairsPerCtn);
 
-    // Determine the historical base buying price from the item itself to avoid using current product price!
+    // Determine the historical base buying and selling prices from the item itself to avoid using current product price!
     let singleBuying = 0;
     let cartonBuying = 0;
+    let singleSelling = 0;
+    let cartonSelling = 0;
     
     if (item.sellType === 'carton' && sellType === 'pair') {
       cartonBuying = item.buyingPriceAtSale || 0;
       singleBuying = cartonBuying / pairsPerCtn;
+
+      cartonSelling = item.sellingPriceAtSale || fallbackCartonSelling;
+      singleSelling = cartonSelling / pairsPerCtn;
     } else if (item.sellType === 'pair' && sellType === 'carton') {
       singleBuying = item.buyingPriceAtSale || 0;
       cartonBuying = singleBuying * pairsPerCtn;
+
+      singleSelling = item.sellingPriceAtSale || fallbackSingleSelling;
+      cartonSelling = singleSelling * pairsPerCtn;
     } else {
       // Fallback if type didn't change or if it's newly loaded
-      singleBuying = product?.singlePairBuyingPrice || product?.buyingPrice || item.buyingPriceAtSale || 0;
-      cartonBuying = product?.buyingPricePerCarton || (singleBuying * pairsPerCtn);
+      singleBuying = item.buyingPriceAtSale || product?.singlePairBuyingPrice || product?.buyingPrice || 0;
+      cartonBuying = item.buyingPriceAtSale && item.sellType === 'carton' ? item.buyingPriceAtSale : (product?.buyingPricePerCarton || (singleBuying * pairsPerCtn));
+
+      singleSelling = item.sellingPriceAtSale || fallbackSingleSelling;
+      cartonSelling = item.sellingPriceAtSale && item.sellType === 'carton' ? item.sellingPriceAtSale : fallbackCartonSelling;
     }
 
     item.sellType = sellType;

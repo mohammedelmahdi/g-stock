@@ -70,21 +70,20 @@ export default function Dashboard({
       
       if (s.items && s.items.length > 0) {
         const cost = s.items.reduce((sum, item) => {
+          const itemBuyingPrice = item.buyingPriceAtSale !== undefined ? item.buyingPriceAtSale : (s.buyingPriceAtSale || 0);
           if (item.sellType === 'carton') {
             // For carton sales: cartonsQuantity is the actual carton count.
-            // item.buyingPriceAtSale is the carton buying price.
             const cartonsQty = item.cartonsQuantity || 0;
-            return sum + (cartonsQty * item.buyingPriceAtSale);
+            return sum + (cartonsQty * itemBuyingPrice);
           } else {
             // For single pairs: pairsQuantity is the pair count, fallback to item.quantity.
-            // item.buyingPriceAtSale is the single pair buying price.
-            const pairsQty = item.pairsQuantity || item.quantity;
-            return sum + (pairsQty * item.buyingPriceAtSale);
+            const pairsQty = item.pairsQuantity || item.quantity || 0;
+            return sum + (pairsQty * itemBuyingPrice);
           }
         }, 0);
         return acc + (s.totalPrice - cost);
       } else {
-        const cost = s.buyingPriceAtSale * s.quantity;
+        const cost = (s.buyingPriceAtSale || 0) * s.quantity;
         return acc + (s.totalPrice - cost);
       }
     }, 0);

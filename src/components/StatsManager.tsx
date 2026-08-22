@@ -374,12 +374,13 @@ export default function StatsManager({
 
       if (sale.items && sale.items.length > 0) {
         buyingCost = sale.items.reduce((sum, item) => {
+          const itemBuyingPrice = item.buyingPriceAtSale !== undefined ? item.buyingPriceAtSale : (sale.buyingPriceAtSale || 0);
           if (item.sellType === 'carton') {
             const cartonsQty = item.cartonsQuantity || 0;
-            return sum + (cartonsQty * (item.buyingPriceAtSale || 0));
+            return sum + (cartonsQty * itemBuyingPrice);
           } else {
             const pairsQty = item.pairsQuantity || item.quantity || 0;
-            return sum + (pairsQty * (item.buyingPriceAtSale || 0));
+            return sum + (pairsQty * itemBuyingPrice);
           }
         }, 0);
       } else {
@@ -588,12 +589,13 @@ export default function StatsManager({
 
       if (sale.items && sale.items.length > 0) {
         buyingCost = sale.items.reduce((sum, item) => {
+          const itemBuyingPrice = item.buyingPriceAtSale !== undefined ? item.buyingPriceAtSale : (sale.buyingPriceAtSale || 0);
           if (item.sellType === 'carton') {
             const cartonsQty = item.cartonsQuantity || 0;
-            return sum + (cartonsQty * (item.buyingPriceAtSale || 0));
+            return sum + (cartonsQty * itemBuyingPrice);
           } else {
             const pairsQty = item.pairsQuantity || item.quantity || 0;
-            return sum + (pairsQty * (item.buyingPriceAtSale || 0));
+            return sum + (pairsQty * itemBuyingPrice);
           }
         }, 0);
       } else {
@@ -695,12 +697,13 @@ export default function StatsManager({
       let buyingCost = 0;
       if (sale.items && sale.items.length > 0) {
         buyingCost = sale.items.reduce((sum, item) => {
+          const itemBuyingPrice = item.buyingPriceAtSale !== undefined ? item.buyingPriceAtSale : (sale.buyingPriceAtSale || 0);
           if (item.sellType === 'carton') {
             const cartonsQty = item.cartonsQuantity || 0;
-            return sum + (cartonsQty * (item.buyingPriceAtSale || 0));
+            return sum + (cartonsQty * itemBuyingPrice);
           } else {
             const pairsQty = item.pairsQuantity || item.quantity || 0;
-            return sum + (pairsQty * (item.buyingPriceAtSale || 0));
+            return sum + (pairsQty * itemBuyingPrice);
           }
         }, 0);
       } else {
