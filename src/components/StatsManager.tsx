@@ -952,13 +952,13 @@ export default function StatsManager({
           </p>
         </div>
 
-        {/* Card C: المتبقي في الجيب (صافي الأرباح الكلي) */}
+        {/* Card C: صافي الأرباح الكلي للنشاط (Net Profit) */}
         <div className="bg-gradient-to-br from-slate-900 to-indigo-950/30 p-5 rounded-2xl border border-indigo-500/40 shadow-xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-indigo-950">
               <h3 className="text-sm font-black text-slate-100 flex items-center gap-2">
                 <Coins className="w-5 h-5 text-indigo-400" />
-                <span>الأرباح الصافية الحقيقية (المتبقي في جيبك)</span>
+                <span>صافي الأرباح الكلي للنشاط (Net Profit)</span>
               </h3>
               <span className="text-xs font-black text-indigo-400">مجموع كل شيء</span>
             </div>

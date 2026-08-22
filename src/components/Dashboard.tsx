@@ -124,8 +124,28 @@ export default function Dashboard({
     const receivedFromDeliveryTotalSettled = receivedFromDelivery + totalDeliveryCommission;
     const remainingWithDelivery = Math.max(0, allTimeDeliveredRevenue - receivedFromDeliveryTotalSettled);
 
-    // Current net profit actually in hand after withdrawal
-    const currentNetProfit = netProfit - remainingWithDelivery;
+    // Supplier payments (actual cash spent on inventory)
+    let totalPaidToSupplier = 0;
+    try {
+      const savedSupplier = localStorage.getItem('supplier_payments_history');
+      if (savedSupplier) {
+        const supplierPayments = JSON.parse(savedSupplier);
+        if (Array.isArray(supplierPayments)) {
+          totalPaidToSupplier = supplierPayments.reduce((sum: number, p: any) => sum + (p.amount || 0), 0);
+        }
+      } else {
+        const oldSaved = localStorage.getItem('supplier_paid_amount');
+        if (oldSaved) {
+          totalPaidToSupplier = Number(oldSaved) || 0;
+        }
+      }
+    } catch (e) {
+      console.error('Failed to parse supplier payments for dashboard metrics:', e);
+    }
+
+    // Current cash actually in hand (السيولة الفعلية في الجيب)
+    // Formula: receivedFromDelivery - totalExpenses - totalPackagingCost - totalPaidToSupplier
+    const currentNetProfit = receivedFromDelivery - totalExpenses - totalPackagingCost - totalPaidToSupplier;
 
     // Low stock items (quantity < 5, but > 0)
     const lowStockCount = products.filter(p => p.quantity > 0 && p.quantity < 5).length;
@@ -145,6 +165,7 @@ export default function Dashboard({
       totalExpenses,
       totalPackagingCost,
       totalDeliveryCommission,
+      totalPaidToSupplier,
       lowStockCount,
       outOfStockCount,
     };
@@ -332,12 +353,12 @@ export default function Dashboard({
           className="bg-slate-900 p-3.5 sm:p-5 rounded-2xl border-2 border-emerald-500/50 shadow-emerald-900/10 shadow-2xl flex flex-col justify-between min-h-[115px] sm:min-h-[140px] relative overflow-hidden"
         >
           <div className="absolute top-0 left-0 bg-emerald-600 text-[8px] sm:text-[9px] text-white font-black px-2 py-0.5 rounded-br-lg uppercase tracking-wider">
-            صافي الربح الفعلي
+            السيولة المتوفرة (الكاش)
           </div>
           <div className="flex items-center justify-between gap-1 mt-2">
             <span className="text-[11px] sm:text-sm font-black text-emerald-400 truncate flex items-center gap-1">
-              <span>الصافي الحالي في الجيب</span>
-              <HelpCircle className="w-3.5 h-3.5 text-emerald-300 shrink-0 hidden sm:inline" title="الأرباح الصافية المتوفرة كسيولة فعلية في يدك بعد استبعاد المبالغ العالقة قيد السحب عند شركة التوصيل" />
+              <span>الرصيد الفعلي في الجيب</span>
+              <HelpCircle className="w-3.5 h-3.5 text-emerald-300 shrink-0 hidden sm:inline" title="رصيد الصندوق الفعلي: المبالغ التي سحبتها من شركة التوصيل مطروحاً منها المصاريف والتغليف والمدفوعات الفعلية للمورد" />
             </span>
             <div className="p-1.5 sm:p-2 bg-emerald-500/20 rounded-lg text-emerald-300 font-black shrink-0">
               <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -348,9 +369,9 @@ export default function Dashboard({
               {formatCurrency(metrics.currentNetProfit)}
             </span>
             <div className="text-[9px] text-slate-400 mt-1 space-y-0.5 font-medium truncate">
-              <p>الصافي المستلم: <span className="text-emerald-400 font-bold">{formatCurrency(metrics.receivedFromDelivery)}</span></p>
-              <p>بانتظار السحب: <span className="text-amber-500 font-bold">{formatCurrency(metrics.remainingWithDelivery)}</span></p>
-              <p className="text-slate-500 text-[8.5px] mt-0.5 font-sans">السيولة الحقيقية المتوفرة حالياً 💰</p>
+              <p>السيولة المستلمة: <span className="text-emerald-400 font-bold">{formatCurrency(metrics.receivedFromDelivery)}</span></p>
+              <p>المدفوع للمورد: <span className="text-purple-400 font-bold">{formatCurrency(metrics.totalPaidToSupplier)}</span></p>
+              <p>المصاريف والتغليف: <span className="text-rose-400 font-bold">{formatCurrency(metrics.totalExpenses + metrics.totalPackagingCost)}</span></p>
             </div>
           </div>
         </motion.div>
@@ -438,13 +459,13 @@ export default function Dashboard({
               <div className="bg-slate-900/55 p-3.5 rounded-xl border border-emerald-500/20 space-y-1.5">
                 <div className="flex items-center gap-1.5 text-emerald-300 font-bold justify-start flex-row-reverse">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  <span>3. الصافي الحالي في الجيب</span>
+                  <span>3. الرصيد الفعلي في الجيب</span>
                 </div>
                 <p className="text-[11px] text-slate-400 leading-relaxed text-right">
-                  هذه هي <strong>السيولة الحالية المتاحة في يدك الآن</strong>. يتم حسابها بطرح المبالغ التي لا تزال عالقة عند شركة التوصيل (التي استلمها الزبون ولكن لم تسحبها بعد) من الربح الصافي الكلي.
+                  هذا يمثل <strong>السيولة النقدية المتوفرة حالياً في صندوقك (الكاش الفعلي)</strong>. يتم حسابه بطرح جميع المصاريف التشغيلية والمدفوعات التي سلمتها للمورد من إجمالي المبالغ التي قمت بسحبها بالفعل من شركة التوصيل.
                 </p>
                 <div className="pt-2 border-t border-slate-800/40 text-[10px] text-slate-400 font-mono text-right">
-                  الحساب: <span className="text-emerald-300">الربح الصافي - المبالغ العالقة عند التوصيل</span>
+                  الحساب: <span className="text-emerald-300">السيولة المستلمة - المصاريف - التغليف - المبالغ المدفوعة للمورد</span>
                 </div>
               </div>
             </div>
@@ -452,8 +473,8 @@ export default function Dashboard({
             <div className="bg-emerald-950/20 border border-emerald-900/40 p-3 rounded-xl text-[11px] text-emerald-300 flex items-start gap-2 text-right">
               <Info className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
               <div>
-                <strong>مثال عملي مبسط:</strong> إذا بلغت أرباح سلعك الموصلة 4,000 دج، ومصاريفك 500 دج، وتغليفك 100 دج، وعمولة التوصيل 800 دج.
-                فإن <strong>صافي ربحك الكلي للنشاط</strong> هو 2,600 دج. لكن إذا كانت الـ 10,000 دج (قيمة السلعة بالتوصيل) ما زالت عند شركة التوصيل ولم تسحبها بعد، فإن سيولتك الحالية تكون سالبة لأنك دفعت تكاليف الشراء والمصاريف مسبقاً، وسترتفع لتصبح 2,600 دج بمجرد استلام أموالك من شركة التوصيل وتأكيد السحب!
+                <strong>مثال عملي مبسط:</strong> إذا بلغت المبالغ التي قمت بسحبها من شركة التوصيل 15,000 دج، ودفعت للمورد 8,000 دج لشراء السلع، ومصاريف الإعلانات والمحل 1,200 دج، وتغليف الطرود 300 دج.
+                فإن <strong>الرصيد الفعلي في جيبك حالياً</strong> هو 5,500 دج كاش متوفرة كسيولة حقيقية.
               </div>
             </div>
           </motion.div>
